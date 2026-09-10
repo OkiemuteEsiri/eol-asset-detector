@@ -1,0 +1,29 @@
+name: security-quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile source
+        run: python -m compileall -q src tests
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: CLI smoke test
+        run: PYTHONPATH=. python -m src.eol_detector.cli data/synthetic_inventory.csv --as-of 2026-09-10 --output /tmp/eol-report.md
+      - name: Validate generated report
+        run: |
+          test -s /tmp/eol-report.md
+          grep -q "End-of-Life Asset Assessment" /tmp/eol-report.md
+          grep -q "AST-001" /tmp/eol-report.md
